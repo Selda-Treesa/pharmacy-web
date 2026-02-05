@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediQuick Pharmacy</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins,sans-serif}
+body{background:#f4f7fb;color:#222}
+
+/* HEADER */
+header{
+background:#0f9d8a;color:#fff;padding:16px 8%;
+display:flex;justify-content:space-between;align-items:center;
+position:sticky;top:0;z-index:10
+}
+nav a{color:#fff;text-decoration:none;margin-left:18px;cursor:pointer}
+
+/* HERO */
+.hero{
+background:linear-gradient(120deg,#0f9d8a,#36c9b8);
+color:white;padding:70px 8%
+}
+.hero h2{margin-bottom:10px}
+
+/* SECTION */
+.section{padding:40px 8%}
+.section h3{margin-bottom:20px}
+
+/* OFFERS */
+.offers{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px
+}
+.offer{
+background:white;padding:20px;border-radius:12px;
+box-shadow:0 4px 10px rgba(0,0,0,.05)
+}
+
+/* CATEGORY */
+.categories{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:15px
+}
+.category{
+background:white;padding:18px;border-radius:10px;
+text-align:center;cursor:pointer
+}
+.active-cat{outline:2px solid #0f9d8a}
+
+/* PRODUCTS */
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+gap:20px
+}
+.card{
+background:white;border-radius:12px;padding:15px;
+box-shadow:0 4px 10px rgba(0,0,0,.05)
+}
+.card img{height:140px;width:100%;object-fit:contain}
+.card button{
+padding:10px;border:none;background:#0f9d8a;
+color:white;border-radius:6px;width:100%
+}
+
+/* SEARCH */
+.search-bar input{
+width:100%;padding:12px;border-radius:8px;
+border:1px solid #ccc;margin-bottom:15px
+}
+
+/* FOOTER */
+footer{
+background:#0f9d8a;color:white;
+text-align:center;padding:20px;margin-top:30px
+}
+
+/* CART + ADMIN */
+.cart{
+position:fixed;right:0;top:0;width:350px;height:100%;
+background:white;padding:20px;overflow:auto;
+transform:translateX(100%);
+transition:.3s;
+box-shadow:-4px 0 10px rgba(0,0,0,0.1);
+z-index:50
+}
+.cart.open{transform:translateX(0)}
+.cart-item{display:flex;justify-content:space-between;margin:10px 0}
+.badge{background:#ff5252;color:white;border-radius:50%;padding:2px 7px;font-size:12px}
+
+input,textarea,select{
+width:100%;padding:8px;margin:5px 0
+}
+button{cursor:pointer}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>MediQuick Pharmacy</h2>
+<nav>
+<a onclick="filterByCategory('All')">Shop</a>
+<a onclick="toggleCart()">Cart <span id="cart-count" class="badge">0</span></a>
+<a onclick="openAdmin()">Admin</a>
+</nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+<h2>Medicines Delivered to Your Doorstep</h2>
+<p>Order medicines, health devices, and wellness products easily.</p>
+</section>
+
+<!-- OFFERS -->
+<section class="section">
+<h3>Today's Offers</h3>
+<div class="offers">
+<div class="offer">Flat 20% off on Vitamins</div>
+<div class="offer">Free delivery above ₹499</div>
+<div class="offer">Health devices up to 30% off</div>
+<div class="offer">Buy 2 Get 1 on wellness items</div>
+</div>
+</section>
+
+<!-- CATEGORY -->
+<section class="section">
+<h3>Shop by Category</h3>
+<div class="categories" id="category-list"></div>
+</section>
+
+<!-- PRODUCTS -->
+<section class="section">
+<h3>Popular Products</h3>
+<div class="search-bar">
+<input placeholder="Search medicines..." onkeyup="searchProducts(this.value)">
+</div>
+<div class="products" id="product-list"></div>
+</section>
+
+<footer>© MediQuick Pharmacy</footer>
+
+<!-- CART -->
+<div class="cart" id="cart">
+<h3>Your Cart</h3>
+<div id="cart-items"></div>
+<p id="cart-total">Total ₹0</p>
+<button onclick="showCheckout()">Checkout</button>
+
+<div id="checkout" style="display:none">
+<input placeholder="Name">
+<input placeholder="Phone">
+<textarea placeholder="Address"></textarea>
+<button onclick="placeOrder()">Place Order</button>
+</div>
+</div>
+
+<!-- ADMIN -->
+<div class="cart" id="admin-panel">
+<h3>Admin Panel</h3>
+
+<div id="admin-login">
+<input id="admin-pass" placeholder="Password">
+<button onclick="loginAdmin()">Login</button>
+</div>
+
+<div id="admin-content" style="display:none">
+<h4>Orders</h4>
+<div id="orders-list"></div>
+
+<h4>Add Product</h4>
+<input id="new-name" placeholder="Name">
+<input id="new-price" placeholder="Price">
+<input id="new-image" placeholder="Image URL">
+<select id="new-category"></select>
+<button onclick="addNewProduct()">Add Product</button>
+</div>
+</div>
+
+<script>
+const HOME_LIMIT=24;
+const categories=["All","OTC Medicines","Vitamins","Devices","Personal Care"];
+
+const medicineNames=[
+"Paracetamol","Ibuprofen","Azithromycin","Amoxicillin","Metformin",
+"Amlodipine","Atorvastatin","Pantoprazole","Cetirizine","Montelukast",
+"Cough Syrup","ORS Powder","Antacid","Vitamin C","Vitamin D3",
+"Multivitamin","Calcium","Iron Supplement","Zinc Tablets",
+"Hand Sanitizer","Antiseptic Liquid","Baby Lotion","Baby Shampoo",
+"Diapers","Thermometer","BP Monitor","Pulse Oximeter","Glucometer"
+];
+
+const categoryMap={
+"OTC Medicines":medicineNames.slice(0,15),
+"Vitamins":medicineNames.slice(13,19),
+"Personal Care":medicineNames.slice(19,24),
+"Devices":medicineNames.slice(24,28)
+};
+
+const products=[];
+Object.entries(categoryMap).forEach(([category,items])=>{
+items.forEach(name=>{
+for(let i=1;i<=8;i++){
+products.push({
+name:`${name} ${i*5}mg`,
+price:Math.floor(Math.random()*400)+40,
+category,
+img:`https://via.placeholder.com/200?text=${encodeURIComponent(name)}`
+});
+}
+});
+});
+
+function shuffleProducts(arr){
+for(let i=arr.length-1;i>0;i--){
+const j=Math.floor(Math.random()*(i+1));
+[arr[i],arr[j]]=[arr[j],arr[i]];
+}
+}
+shuffleProducts(products);
+
+let activeCategory="All";
+let cart=[];
+
+function renderCategories(){
+let c=document.getElementById("category-list");
+c.innerHTML="";
+categories.forEach(cat=>{
+c.innerHTML+=`<div class="category ${cat===activeCategory?'active-cat':''}"
+onclick="filterByCategory('${cat}')">${cat}</div>`;
+});
+}
+
+function renderProducts(list,limit=false){
+let container=document.getElementById("product-list");
+container.innerHTML="";
+let display=limit?list.slice(0,HOME_LIMIT):list;
+
+display.forEach(p=>{
+container.innerHTML+=`
+<div class="card">
+<img src="${p.img}">
+<h4>${p.name}</h4>
+<p>₹${p.price}</p>
+<button onclick="addToCart('${p.name}')">Add to Cart</button>
+</div>`;
+});
+}
+
+function filterByCategory(cat){
+activeCategory=cat;
+renderCategories();
+if(cat==="All") renderProducts(products,true);
+else renderProducts(products.filter(p=>p.category===cat));
+}
+
+function searchProducts(term){
+term=term.toLowerCase();
+renderProducts(products.filter(p=>p.name.toLowerCase().includes(term)));
+}
+
+function addToCart(name){
+let p=products.find(x=>x.name===name);
+let existing=cart.find(x=>x.name===name);
+if(existing) existing.qty++;
+else cart.push({...p,qty:1});
+renderCart();
+toggleCart();
+}
+
+function renderCart(){
+let items=document.getElementById("cart-items");
+items.innerHTML="";
+let total=0,count=0;
+
+cart.forEach(p=>{
+total+=p.price*p.qty;
+count+=p.qty;
+items.innerHTML+=`
+<div class="cart-item">
+<span>${p.name} x${p.qty}</span>
+<span>₹${p.price*p.qty}</span>
+</div>`;
+});
+
+document.getElementById("cart-total").innerText="Total ₹"+total;
+document.getElementById("cart-count").innerText=count;
+}
+
+function toggleCart(){
+document.getElementById("cart").classList.toggle("open");
+}
+
+function showCheckout(){
+document.getElementById("checkout").style.display="block";
+}
+
+function placeOrder(){
+if(cart.length===0)return alert("Cart empty");
+let orders=JSON.parse(localStorage.getItem("orders")||"[]");
+orders.push({date:new Date().toLocaleString(),items:cart});
+localStorage.setItem("orders",JSON.stringify(orders));
+alert("Order placed!");
+cart=[];
+renderCart();
+toggleCart();
+}
+
+/* ADMIN */
+function openAdmin(){
+document.getElementById("admin-panel").classList.toggle("open");
+}
+
+function loginAdmin(){
+if(document.getElementById("admin-pass").value==="admin123"){
+document.getElementById("admin-login").style.display="none";
+document.getElementById("admin-content").style.display="block";
+loadOrders();
+populateCategories();
+}else alert("Wrong password");
+}
+
+function loadOrders(){
+let orders=JSON.parse(localStorage.getItem("orders")||"[]");
+let box=document.getElementById("orders-list");
+box.innerHTML="";
+orders.forEach(o=>{
+box.innerHTML+=`<p>Order placed on ${o.date}</p><hr>`;
+});
+}
+
+function populateCategories(){
+let sel=document.getElementById("new-category");
+categories.forEach(c=>{
+if(c!=="All") sel.innerHTML+=`<option>${c}</option>`;
+});
+}
+
+function addNewProduct(){
+let name=document.getElementById("new-name").value;
+let price=parseInt(document.getElementById("new-price").value);
+let img=document.getElementById("new-image").value;
+let cat=document.getElementById("new-category").value;
+products.push({name,price,img,category:cat});
+renderProducts(products,true);
+alert("Product Added");
+}
+
+renderCategories();
+renderProducts(products,true);
+</script>
+
+</body>
+</html>
